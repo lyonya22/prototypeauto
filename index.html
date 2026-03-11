@@ -277,6 +277,62 @@
     <div id="cart-count">0</div>
 </div>
 
+    <script>
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+    let cart = [];
+
+    // Настройка главной кнопки ТГ
+    tg.MainButton.setParams({
+        text: "ОФОРМИТЬ ЗАКАЗ",
+        color: "#bc4efc",
+        text_color: "#ffffff"
+    });
+
+    function toggleCard(card) {
+        card.classList.toggle('open');
+    }
+
+    function addToCart(name, price, event) {
+        event.stopPropagation(); // Чтобы карточка не закрылась
+        cart.push({name, price});
+        
+        // Обновляем счетчик
+        const countEl = document.getElementById('cart-count');
+        countEl.innerText = cart.length;
+        countEl.style.display = 'flex';
+
+        // Показываем кнопку оформления
+        let total = cart.reduce((sum, item) => sum + item.price, 0);
+        tg.MainButton.setText(`ЗАКАЗАТЬ: ${total} ₸`);
+        tg.MainButton.show();
+    }
+
+    // Когда нажали кнопку внизу экрана ТГ
+    tg.onEvent('mainButtonClicked', function() {
+        if (cart.length > 0) {
+            let orderText = cart.map(item => `${item.name} (${item.price})`).join(", ");
+            tg.sendData(orderText); // ЭТО ОТПРАВЛЯЕТ ЗАКАЗ В БОТ
+        }
+    });
+
+    // Фильтры (простая логика)
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelector('.tab.active').classList.remove('active');
+            tab.classList.add('active');
+            const filter = tab.dataset.filter;
+            document.querySelectorAll('.model-card').forEach(card => {
+                if (filter === 'all' || card.dataset.type === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+    
 <script>
     let tg = window.Telegram.WebApp;
     tg.expand();
