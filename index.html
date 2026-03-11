@@ -331,118 +331,58 @@
             });
         });
     });
-</script>
-    
 <script>
     let tg = window.Telegram.WebApp;
     tg.expand();
     let cart = [];
 
-    /* Фильтрация категорий */
+    /* Фильтрация */
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelector('.tab.active').classList.remove('active');
             tab.classList.add('active');
             const filter = tab.getAttribute('data-filter');
-            
             document.querySelectorAll('.model-card').forEach(card => {
-                if (filter === 'all' || card.getAttribute('data-type') === filter) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
+                card.style.display = (filter === 'all' || card.getAttribute('data-type') === filter) ? 'block' : 'none';
             });
             tg.HapticFeedback.selectionChanged();
         });
     });
 
-    /* Открытие/Закрытие вкусов */
     function toggleCard(card) {
-        const isOpen = card.classList.contains('open');
-        document.querySelectorAll('.model-card.open').forEach(c => c.classList.remove('open'));
-        if (!isOpen) card.classList.add('open');
+        document.querySelectorAll('.model-card.open').forEach(c => { if(c !== card) c.classList.remove('open'); });
+        card.classList.toggle('open');
         tg.HapticFeedback.impactOccurred('light');
     }
 
-    /* Добавление в корзину */
     function addToCart(name, price, event) {
         event.stopPropagation();
         cart.push({name, price});
         
-        // Анимация полета
-        const fly = document.createElement('div');
-        fly.className = 'fly-particle';
-        fly.style.left = event.clientX + 'px';
-        fly.style.top = event.clientY + 'px';
-        document.body.appendChild(fly);
-
-        const cartRect = document.querySelector('.cart-circle').getBoundingClientRect();
+        let total = cart.reduce((sum, item) => sum + item.price, 0);
         
-        setTimeout(() => {
-            fly.style.left = cartRect.left + 30 + 'px';
-            fly.style.top = cartRect.top + 30 + 'px';
-            fly.style.transform = 'scale(0.5) rotate(360deg)';
-            fly.style.opacity = '0';
-        }, 50);
-
-        setTimeout(() => { fly.remove(); updateUI(); }, 700);
+        // Обновляем кнопку внизу
+        tg.MainButton.setParams({
+            text: `ЗАКАЗАТЬ: ${total} ₸`,
+            color: "#bc4efc",
+            is_visible: true
+        });
+        
+        document.getElementById('cart-count').innerText = cart.length;
+        document.getElementById('cart-count').style.display = 'flex';
+        
         tg.HapticFeedback.notificationOccurred('success');
     }
 
-    /* Обновление интерфейса корзины */
-    function updateUI() {
-        const badge = document.getElementById('cart-count');
+    /* Отправка боту */
+    tg.onEvent('mainButtonClicked', function() {
         if (cart.length > 0) {
-            badge.innerText = cart.length;
-            badge.style.display = 'flex';
-            let total = cart.reduce((sum, item) => sum + item.price, 0);
-            tg.MainButton.setParams({
-                text: `ОФОРМИТЬ (${total} ₸)`,
-                color: "#bc4efc",
-                is_visible: true
-            });
+            let items = cart.map(i => i.name).join(", ");
+            let total = cart.reduce((sum, i) => sum + i.price, 0);
+            // Отправляем строку, которую бот легко поймет
+            tg.sendData(`ЗАКАЗ: ${items} | СУММА: ${total} ₸`);
         }
-    }
-
-    /* Отправка данных боту */
-    tg.MainButton.onClick(() => {
-        let res = cart.map(i => i.name).join(", ");
-        let total = cart.reduce((sum, i) => sum + i.price, 0);
-        tg.sendData(JSON.stringify({ item: res, price: total }));
     });
-
-    /* Фон со снегом */
-    const canvas = document.getElementById('snow');
-    const ctx = canvas.getContext('2d');
-    let w = canvas.width = window.innerWidth;
-    let h = canvas.height = window.innerHeight;
-    let flakes = [];
-
-    function initSnow() {
-        flakes = [];
-        for(let i=0; i<40; i++) {
-            flakes.push({
-                x: Math.random()*w, y: Math.random()*h,
-                r: Math.random()*2 + 1, d: Math.random()*0.3 + 0.1,
-                a: Math.random()*Math.PI
-            });
-        }
-    }
-
-    function drawSnow() {
-        ctx.clearRect(0,0,w,h);
-        ctx.fillStyle = "rgba(255,255,255,0.2)";
-        ctx.beginPath();
-        flakes.forEach(f => {
-            ctx.moveTo(f.x, f.y);
-            ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
-            f.y += f.d; f.x += Math.sin(f.a) * 0.3; f.a += 0.01;
-            if(f.y > h) f.y = -10, f.x = Math.random()*w;
-        });
-        ctx.fill();
-        requestAnimationFrame(drawSnow);
-    }
-    initSnow(); drawSnow();
 </script>
 </body>
 </html>
